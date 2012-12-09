@@ -26,7 +26,7 @@
   "Pretty print (as Dylan code) x, which is in prefix pseudo-Dylan."
   (let ((*precedence* 0))
     (apply #'write x :pretty t #+LispWorks :pprint 
-	   #-Lispworks :pprint-dispatch *dylan-pp-dispatch* keys)
+           #-Lispworks :pprint-dispatch *dylan-pp-dispatch* keys)
     (values)))
 
 ;;;; MACRO FOR DEFINING PRETTY-PRINT DISPATCH ROUTINES
@@ -107,7 +107,7 @@
          (dispatch (if (symbolp fn) (get fn 'dpp))))
     ;; There are 6 possibilities:
     (cond (*in-literal* (dpp-literal s x))  ; e.g. #(1, 2)
-	  (dispatch (funcall dispatch s x)) ; e.g. if (a) b; else c; end
+          (dispatch (funcall dispatch s x)) ; e.g. if (a) b; else c; end
           ((unary? x) (dpp-unary s x))      ; e.g. - x
           ((binary? x) (dpp-binary s x))    ; e.g. x + y
           ((dot-notation-call? x)           ; e.g. object.slot
@@ -136,11 +136,11 @@
 (defun dylan-symbol-string (x)
   ;; Decide whether to include package
   (let* ((str (string-downcase (symbol-name x)))
-	 (package (if (and (get-option ':print-package)
+         (package (if (and (get-option ':print-package)
                             (not (operator? x))
                             (not (keywordp x)))
                        (string-downcase (package-shortest-name 
-					 (symbol-package x))))))
+                                         (symbol-package x))))))
     (if package (concatenate 'string package "/" str) str)))
 
 (defun dylan-name-string (x)
@@ -175,9 +175,9 @@
     (character (dpp-string s x #\'))
     (com       (let ((*in-literal* t)) (dpp-comment  s x)))
     (cons      (write-char #\# s)
-	       (let ((*in-literal* t)) (dpp-list s x)))
+               (let ((*in-literal* t)) (dpp-list s x)))
     (vector    (write-char #\# s)
-	       (let ((*in-literal* t)) (dpp-list s (coerce x 'list) "[" "]")))
+               (let ((*in-literal* t)) (dpp-list s (coerce x 'list) "[" "]")))
     (symbol    (write-char #\# s) (dpp-string s (dylan-symbol-string x)))
     (complex   (dpp-exp `(+ ,(realpart x) (* ,(imagpart x) $i)) :stream s))
     ((and rational (not integer))
@@ -191,11 +191,11 @@
            (dotimes (i (length string))
              (let ((ch (char string i)))
                (cond ((eql ch quote-char) (write-char #\\ s) (write-char ch s))
-	             ((eql ch #\newline) (write-string "\\n" s))
-	             ((eql ch #\tab) (write-string "\\t" s))
-	             ((eql ch #\\) (write-string "\\\\" s))
-	             ((graphic-char-p ch) (write-char ch s))
-	             (t (write-string "\\0" s)
+                     ((eql ch #\newline) (write-string "\\n" s))
+                     ((eql ch #\tab) (write-string "\\t" s))
+                     ((eql ch #\\) (write-string "\\\\" s))
+                     ((graphic-char-p ch) (write-char ch s))
+                     (t (write-string "\\0" s)
                         (write (char-code ch) :stream s)))))
            (write-char quote-char s))))
 
@@ -205,16 +205,16 @@
   ;; The caller (e.g. dpp-call) should have set up the proper indentation.
   (pprint-logical-block (s nil :prefix prefix :suffix suffix)
     (loop while args do
-	  (cond ((atom args) (dpp-exp args :stream s) (setq args nil)) ; ???
-		((and (dylan-keyword? (first/ args)) (rest/ args))
+          (cond ((atom args) (dpp-exp args :stream s) (setq args nil)) ; ???
+                ((and (dylan-keyword? (first/ args)) (rest/ args))
                  (dpp-keyword-with-colon s (pop args))
-		 (format s " ~W" (pop args)))
+                 (format s " ~W" (pop args)))
                 ((and (member (first/ args) '(|\#key| |\#rest| |\#all-keys|))
                       (rest/ args))
                  (format s "~A ~W" (pop args) (pop args)))
                 ((dylan-keyword? (first/ args))
                  (dpp-literal s (pop args)))
-	        (t (write (pop args) :stream s)))
+                (t (write (pop args) :stream s)))
           (when args (format s ", ~:_")) ; a fill-style newline
           )))
 
@@ -229,20 +229,20 @@
     (loop while (consp body) do
           (let* ((exp (pop body))
                  (indent (indentation exp)))
-	    (when indent (pprint-indent :block indent s))
-	    (write-char #\space s)
-	    (if newline-first?
+            (when indent (pprint-indent :block indent s))
+            (write-char #\space s)
+            (if newline-first?
                 (pprint-newline newline-first? s)
-	        (setf newline-first? :linear))
-	    (write exp :stream s)
-	    (if body (write-string ";" s))))
+                (setf newline-first? :linear))
+            (write exp :stream s)
+            (if body (write-string ";" s))))
     (when end ;; Print some of '; end construct name', depending on options.
       (format s "~A~0I ~_end"
               (if (get-option :semicolon-before-end) ";" ""))
       (when (and construct (member-of-option construct :end-construct))
         (format s " ~A" construct)
         (when (and name (get-option :end-name))
-	  (format s " ~A" name))))))
+          (format s " ~A" name))))))
 
 (defun dpp-branch (s x)
   (format s "~@<~W~:>" (second/ x))
@@ -253,10 +253,10 @@
   (ifd (com-comment x)
        (ecase (get-option :comments)
          (// (pprint-logical-block (s nil :per-line-prefix "// ")
-	       (write-string (com-comment x) s))
+               (write-string (com-comment x) s))
              (pprint-newline :mandatory s))
          (/* (pprint-logical-block (s nil :prefix "/* " :suffix " */")
-	       (write-string (com-comment x) s)))))
+               (write-string (com-comment x) s)))))
   (write (com-code x) :stream s))
 
 (defun dpp-unindented (s x)
@@ -321,7 +321,7 @@
   "Print an if, unless, select, until, while, for, or block expression."
   (destructuring-bind (construct test . body) x
     (format s "~@<~A (~W)~W~:>" construct test
-	    `(:body (end ,construct) ,@body))))
+            `(:body (end ,construct) ,@body))))
 
 (defun dpp-define-method (s x &optional (keyword 'method))
   ;; This is also used for define-class, since they have the same structure.
@@ -343,7 +343,7 @@
 (defun dpp-define-module (s x)
   (destructuring-bind (name . clauses) (rest/ x)
     (format s "~@<define module ~W~W~:>" 
-	    name `(:body (end module ,name) ,@clauses))))
+            name `(:body (end module ,name) ,@clauses))))
 
 (defun dpp-define-generic (s x)
   (format s "~@<define generic ~A ~W ~_~W~:>"
@@ -392,19 +392,19 @@
 
 (defun dpp-unary (s list)
   (let* ((prec (second/ (unary? list)))
-	 (nest (<= prec *precedence*))
-	 (*precedence* prec))
+         (nest (<= prec *precedence*))
+         (*precedence* prec))
     (format s "~A~A ~W~A"
             (if nest "(" "") (first/ list) (second/ list) (if nest ")" ""))))
 
 (defun dpp-binary (s list)
   (let* ((prec (second/ (binary? list)))
-	 (nest (<= prec *precedence*)))
+         (nest (<= prec *precedence*)))
     (destructuring-bind (op x y) list
       (pprint-logical-block
           (s nil
-	     :prefix (if nest "(" "")
-	     :suffix (if nest ")" ""))
+             :prefix (if nest "(" "")
+             :suffix (if nest ")" ""))
         (let ((*precedence* (- prec 1)))
           (write x :stream s))
         (format s (case op (|.| "~_.") (:= "~_ := ") (t "~_ ~A ")) op)
@@ -420,10 +420,10 @@
 
 (defun indentation (exp)
   (cond ((unindented? exp) 0)
-	((starts-with exp ':local-method)
+        ((starts-with exp ':local-method)
          (+ #.(length "local ") (get-option :tab-stop)))
         ((starts-with exp ':return) nil)
-	(t (get-option :tab-stop))))
+        (t (get-option :tab-stop))))
 
 (defun dot-notation-call? (x)
   "Is x of suitable form for dot notation, e.g. (SLOT VAR)."

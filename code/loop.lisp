@@ -28,9 +28,9 @@
     ;; otherwise process loop keywords:
     (let ((l (make-loops :code exp :exps (args exp))))
       (CATCH 'LOOP-ERROR
-	     (loop (if (null (loops-exps l)) (RETURN))
-	       (parse-clause l))
-	     (fill-loop-template l)))))
+             (loop (if (null (loops-exps l)) (RETURN))
+               (parse-clause l))
+             (fill-loop-template l)))))
 
 (defun parse-clause (l)
   (let ((key (pop (loops-exps l))))
@@ -39,26 +39,26 @@
 (defun fill-loop-template (l)
   "Use a loops-structure instance to fill the template."
   (let ((code (handle-returns1
-	       `(for (:list-bare ,@(nreverse (loops-fors l)))
-		     ,@(cvt-exps (nreverse (loops-body l)))
-		     ,@(if (or (loops-epilogue l) (loops-result l))
-			   `((:finally ,@(cvt-exps (nreverse (loops-epilogue l)))
-				       ,(cvt-exp (loops-result l))))))
-	       (loops-name l))))
+               `(for (:list-bare ,@(nreverse (loops-fors l)))
+                     ,@(cvt-exps (nreverse (loops-body l)))
+                     ,@(if (or (loops-epilogue l) (loops-result l))
+                           `((:finally ,@(cvt-exps (nreverse (loops-epilogue l)))
+                                       ,(cvt-exp (loops-result l))))))
+               (loops-name l))))
     (loop for (var val) in (loops-vars l) do
-	  (setf code `(let ,(cvt-exp var) ,(cvt-exp val) ,code)))
+          (setf code `(let ,(cvt-exp var) ,(cvt-exp val) ,code)))
     (when (loops-prologue l)
       (setf code `(begin ,@(cvt-exps (nreverse (loops-prologue l))) ,code)))
     (encapsulate-let code)))
 
 (defun loop-error (l key exp)
   (cond ((get-option :macroexpand-hard-loops)
-	 (let ((expanded (handle-loop-finish (safe-macroexpand (loops-code l)))))
-	   (warn "Can't handle ~A ~A in loop; macroexpanding." key exp)
-	   (THROW 'LOOP-ERROR (cvt-exp expanded))))
-	(t (push (cvt-erroneous (loops-code l) nil
-				"Can't handle ~A ~A in loop." key exp)
-		 (loops-body l)))))
+         (let ((expanded (handle-loop-finish (safe-macroexpand (loops-code l)))))
+           (warn "Can't handle ~A ~A in loop; macroexpanding." key exp)
+           (THROW 'LOOP-ERROR (cvt-exp expanded))))
+        (t (push (cvt-erroneous (loops-code l) nil
+                                "Can't handle ~A ~A in loop." key exp)
+                 (loops-body l)))))
 
 
 (defvar *loop-fns* (make-hash-table :test #'equal))
@@ -66,17 +66,17 @@
 (defun get-loop-fn (key)
   (let ((sym (strip key)))
     (or (and (symbolp sym) (gethash (string sym) *loop-fns*))
-	'loop-error)))
+        'loop-error)))
 
 (defmacro def-loop (keys (l next-exp &optional (key-var 'key)) &rest body)
   "Define a new LOOP keyword or keywords."
   `(setf ,@(mapcan
-	    #'(lambda (key)
-		`((gethash ,(string key) *loop-fns*)
-		  #'(lambda (,l ,key-var ,next-exp) 
-		      (declare (ignore ,key-var))
-		      ,@body)))
-	    (mklist keys))))
+            #'(lambda (key)
+                `((gethash ,(string key) *loop-fns*)
+                  #'(lambda (,l ,key-var ,next-exp) 
+                      (declare (ignorable ,key-var))
+                      ,@body)))
+            (mklist keys))))
 
 (defun add-var (l var init)
   "Add a variable to the loop."
@@ -85,10 +85,10 @@
 
 (defun handle-loop-finish (exp)
   (if (and (starts-with exp 'macrolet) (length=1 (second/ exp))
-	   (eq 'loop-finish (first/ (first/ (second/ exp)))))
+           (eq 'loop-finish (first/ (first/ (second/ exp)))))
       (subst (third (first/ (second/ exp))) '(loop-finish) 
-	     `(progn ,@(cddr exp))
-	     :test #'equal)
+             `(progn ,@(cddr exp))
+             :test #'equal)
       exp))
       
 (defun parse-loop-key (l &rest keys)
@@ -111,43 +111,43 @@
   (cond
    ((parse-loop-key l "IN" "ACROSS")
     (push `(:for-clause ,var in ,(cvt-exp (pop (loops-exps l)))) 
-	  (loops-fors l)))
+          (loops-fors l)))
    ((parse-loop-key l "ON")
     (let ((by (if (parse-loop-key l "BY")
-		  (cvt-exp (pop (loops-exps l)))
-		'tail)))
+                  (cvt-exp (pop (loops-exps l)))
+                'tail)))
       (push `(:for-clause ,var = ,(cvt-exp (pop (loops-exps l))) 
-			  then (,by ,var))
-	    (loops-fors l))
+                          then (,by ,var))
+            (loops-fors l))
       (push `(:for-clause :until (empty? ,var)) (loops-fors l))))
    ((parse-loop-key l "BEING")
     (parse-loop-key l "EACH" "THE")
     (cond ((parse-loop-key l "HASH-VALUE" "HASH-VALUES")
-	   (push `(:for-clause ,var in ,(cvt-exp (pop (loops-exps l))))
-		 (loops-fors l)))
-	  ((parse-loop-key l "HASH-KEY" "HASH-KEYS")
-	   (push `(:for-clause ,var in 
-			       (key-sequence ,(cvt-exp (pop (loops-exps l)))))
-		 (loops-fors l)))
-	  (t (loop-error l 'for var))))
+           (push `(:for-clause ,var in ,(cvt-exp (pop (loops-exps l))))
+                 (loops-fors l)))
+          ((parse-loop-key l "HASH-KEY" "HASH-KEYS")
+           (push `(:for-clause ,var in 
+                               (key-sequence ,(cvt-exp (pop (loops-exps l)))))
+                 (loops-fors l)))
+          (t (loop-error l 'for var))))
    ((parse-loop-key l "=")
     (let* ((init (cvt-exp (pop (loops-exps l))))
-	   (next (if (parse-loop-key l "THEN")
-		     (cvt-exp (pop (loops-exps l)))
-		   init)))
+           (next (if (parse-loop-key l "THEN")
+                     (cvt-exp (pop (loops-exps l)))
+                   init)))
       (push `(:for-clause ,var = ,init then ,next) (loops-fors l))))
    (t (try-loop-for-arithmetic l var))))
 
 (defun try-loop-for-arithmetic (l var)
   (let ((start 0)
-	(to nil)
-	(by nil)
+        (to nil)
+        (by nil)
         (negative? nil))
     (loop (let ((subkey (first/ (loops-exps l))))
-	    (cond ((loop=? subkey "TO" "BELOW" "ABOVE")
+            (cond ((loop=? subkey "TO" "BELOW" "ABOVE")
                    (when (loop=? subkey "ABOVE") (setq negative? t))
-		   (pop (loops-exps l))
-		   (setf to (list subkey (cvt-exp (pop (loops-exps l))))))
+                   (pop (loops-exps l))
+                   (setf to (list subkey (cvt-exp (pop (loops-exps l))))))
                   ((loop=? subkey "UPTO" "DOWNTO") ;; Convert to TO
                    (when (loop=? subkey "DOWNTTO") (setq negative? t))
                    (pop (loops-exps l))
@@ -156,10 +156,10 @@
                    (when (loop=? subkey "DOWNFROM") (setq negative? t))
                    (pop (loops-exps l))
                    (setq start (cvt-exp (pop (loops-exps l)))))
-		  ((loop=? subkey "BY")
-		   (pop (loops-exps l))
-		   (setf by (list subkey (cvt-exp (pop (loops-exps l))))))
-		  (t (RETURN)))))
+                  ((loop=? subkey "BY")
+                   (pop (loops-exps l))
+                   (setf by (list subkey (cvt-exp (pop (loops-exps l))))))
+                  (t (RETURN)))))
     ;; A bit tricky here: Lisp's BY clause are always positive,
     ;; Dylan's are negative for decrement.  E.g., we want
     ;; (loop for x downfrom 10 to 0 by 2) => for(x from 10 to 0 by -2)
@@ -168,7 +168,7 @@
     (when negative?
       (cond (by (setf (second by) `(-- ,(second by))))
             ((null to) (setf by '(by -1)))
-	    ((loop=? (first to) "ABOVE") 'ignore)
+            ((loop=? (first to) "ABOVE") 'ignore)
             (t (setf by '(by -1)))))
     (push `(:for-clause ,var from ,start ,@to ,@by) (loops-fors l))))
 
@@ -231,20 +231,20 @@
   (let ((vars nil) (vals nil))
     (push var (loops-exps l))
     (loop 
-	(push (parse-var l) vars)
+        (push (parse-var l) vars)
       (push (if (parse-loop-key l "=") (pop (loops-exps l)) '|\#f|) vals)
       (unless (parse-loop-key l "AND") (RETURN)))
     (cond ((= (length vars) 1)
-	   (add-var l (first/ vars) (first/ vals)))
-	  (t (add-var l `(:args ,@vars) `(values ,@vals))))))
+           (add-var l (first/ vars) (first/ vals)))
+          (t (add-var l `(:args ,@vars) `(values ,@vals))))))
 
 (defun parse-var (l &optional given-var)
   "Parse and return var [type-spec]" ; See CLtL2 p. 743
   (let ((var (or given-var 
-		 (if (symbolp (first/ (loops-exps l))) (pop (loops-exps l))))))
+                 (if (symbolp (first/ (loops-exps l))) (pop (loops-exps l))))))
     (if (or (parse-loop-key l "OF-TYPE")
-	    (every #'numeric-type? (mklist (first (loops-exps l)))))
-	`(|::| ,var ,(cvt-type (pop (loops-exps l))))
+            (every #'numeric-type? (mklist (first (loops-exps l)))))
+        `(|::| ,var ,(cvt-type (pop (loops-exps l))))
       var)))
 
 (defun numeric-type? (x) 
@@ -259,24 +259,24 @@
 (defun add-body (l exp) 
   (if (loops-conditionals l)
       (let ((target  (first (loops-conditionals l))))
-	;; Target is of form (if ... (progn ...)),
-	;; or (if ... (progn ...) (progn ...)) within an ELSE.
-	;; So we NCONC onto the last (progn ...)
-	(nconc1 (last1 target) exp))
+        ;; Target is of form (if ... (progn ...)),
+        ;; or (if ... (progn ...) (progn ...)) within an ELSE.
+        ;; So we NCONC onto the last (progn ...)
+        (nconc1 (last1 target) exp))
     (push exp (loops-body l))))
 
 (def-loop (when if unless) (l test key) 
   ;; WHEN expr clauses [ELSE clauses] [END]
   ;; clauses -> clause {AND clause}*
   (let ((target (list 'if 
-		      (if (loop=? key "UNLESS") `(not ,test) test)
-		      (list 'progn))))
+                      (if (loop=? key "UNLESS") `(not ,test) test)
+                      (list 'progn))))
     (add-body l target)
     (push target (loops-conditionals l))
     (parse-clauses l)
     (when (parse-loop-key l "ELSE")
       (setf (first (loops-conditionals l))
-	    (nconc1 (first (loops-conditionals l)) (list 'progn)))
+            (nconc1 (first (loops-conditionals l)) (list 'progn)))
       (parse-clauses l))
     (pop (loops-conditionals l))
     (parse-loop-key l "END")))   
@@ -318,10 +318,3 @@
         (push (pop (loops-exps l)) (loops-epilogue l))))
 
 (def-loop named (l exp) (setf (loops-name l) exp))
-
-
-
-
-
-
-                  

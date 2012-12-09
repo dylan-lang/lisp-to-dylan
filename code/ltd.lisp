@@ -11,10 +11,10 @@
     (dolist (file (expand-files files))
       (with-open-file (out (merge-pathnames output file) :direction :output
                            :if-exists :supersede)
-	(with-open-file (in file :direction :input)
-	  (format t "Converting ~A~%" file)
+        (with-open-file (in file :direction :input)
+          (format t "Converting ~A~%" file)
           (restart-case 
-	      (loop until (eq *eof* (ltd-exp in out)))
+              (loop until (eq *eof* (ltd-exp in out)))
             (nil () :report (lambda (s) (format s "Skip file ~A" file)))))))
     (report-unimplemented-functions)))
 
@@ -54,36 +54,41 @@
   "Store, under the function symbol in Lisp, a function to convert to Dylan."
   ;; The function will be passed EXP, the complete expression to be converted.
   ;; This is either of the form (f x y z) or #'f
-  (if (symbolp cl) (setf cl `(,cl . args))) ; Coerce to canonical form
+  (when (symbolp cl)
+    (setf cl `(,cl . args)))          ; Coerce to canonical form
   `(progn
-    (setf (get ',(op cl) 'cvt-fn)
-	  #'(lambda (exp)
-	      ,(cond
-                ((symbolp dylan)
-		      `(if (call? exp)
-			  (cons ',dylan (cvt-exps (args exp)))
-			  ',dylan))
-		     ((starts-with dylan 'function)
-		      `(,(second/ dylan) exp))
-                     ((starts-with dylan 'cl?)
-                      `(encapsulate-let
-                             (converting-bind ,(args cl) (args exp) ,dylan)))
-		     (t `(cond
-                          ((call? exp)
-			   (encapsulate-let
-			    (converting-bind ,(args cl) (args exp) 
-			      ,@(when (find-anywhere 'ignore (args cl))
-				  '((declare (ignore ignore))))
-					     ,dylan)))
-                          ,@(if (or (dotted? cl) (find-anywhere '&opt cl))
-                                `((t (cvt-erroneous ; ??? could do better
-                                      exp (second/ exp)
-				      "Can't convert complex function ~A." 
-                                      (second/ exp))))
-                                `((t (let ((dylan-args '(:args ,@(args cl)))
-                                           (dylan-body (cvt-exp ',cl)))
-                                       (list 'method dylan-args dylan-body))))))))))
-    ',(first-atom cl)))
+     (setf (get ',(op cl) 'cvt-fn)
+           #'(lambda (exp)
+               ,(cond
+                 ((symbolp dylan)
+                  `(if (call? exp)
+                       (cons ',dylan (cvt-exps (args exp)))
+                       ',dylan))
+                 ((starts-with dylan 'function)
+                  `(,(second/ dylan) exp))
+                 ((starts-with dylan 'cl?)
+                  `(encapsulate-let
+                    (converting-bind ,(args cl) (args exp) ,dylan)))
+                 (t `(cond
+                       ((call? exp)
+                        (encapsulate-let
+                         (converting-bind ,(args cl) (args exp) 
+                           ,@(when (find-anywhere 'ignore (args cl))
+                                   '((declare (ignore ignore))))
+                           ;; Don't warn for ARGS added above in
+                           ;; coercion to canonical form.
+                           ,@(when (find-anywhere 'args (args cl))
+                                   '((declare (ignore args))))
+                           ,dylan)))
+                       ,@(if (or (dotted? cl) (find-anywhere '&opt cl))
+                             `((t (cvt-erroneous ; ??? could do better
+                                   exp (second/ exp)
+                                   "Can't convert complex function ~A." 
+                                   (second/ exp))))
+                             `((t (let ((dylan-args '(:args ,@(args cl)))
+                                        (dylan-body (cvt-exp ',cl)))
+                                    (list 'method dylan-args dylan-body))))))))))
+     ',(first-atom cl)))
 
 (defmacro ltd-unimplemented-functions (&rest fns)
   "These functions are not yet implemented."
@@ -92,7 +97,7 @@
                   ((nil) (setf (get fn 'cvt-fn) 'not-yet-implemented))
                   ((not-yet-implemented))
                   (t (warn "~A is already implemented!" fn)))) 
-	',fns))
+        ',fns))
 
 (defmacro ltd-unimplemented-types (&rest types)
   "These types are not yet implemented."
@@ -111,17 +116,17 @@
   (let ((fn (if (call? exp) (op exp) (second/ exp))))
     (incf-unimplemented fn)
     (if (call? exp)
-	`(,(cvt-erroneous exp fn "Function ~A not yet implemented." fn)
-	  ,@(cvt-exps (args exp)))
+        `(,(cvt-erroneous exp fn "Function ~A not yet implemented." fn)
+          ,@(cvt-exps (args exp)))
       (cvt-erroneous exp fn "Function ~A not yet implemented." fn))))
 
 (defun report-unimplemented-functions ()
   (let ((result nil))
     (maphash #'(lambda (k v) (push (list v k) result))
-	     *unimplemented*)
+             *unimplemented*)
     (format t "~%Counts of unimplmented functions:~%")
     (loop for (n fn) in (sort result #'> :key #'first) 
-	  do (format t "~4D ~A~%" n fn))
+          do (format t "~4D ~A~%" n fn))
     (clrhash *unimplemented*)))
 
 ;;;; CONVERTING BASIC EXPRESSIONS
@@ -132,13 +137,13 @@
               (or (get-cvt-constant exp) (constantp exp)))
          (cvt-constant exp))
         ((comment? exp) (setf (com-code exp) (cvt-exp (com-code exp))) exp)
-	((atom exp) exp)
-	((get-cvt-fn (op exp))
-	 (funcall (get-cvt-fn (op exp)) exp))
-	((and (symbolp (op exp)) (macro-function (op exp)))
-	 (cvt-macro exp))
-	(t `(,(cvt-fn `(function ,(op exp)))
-	     ,@(cvt-exps (args exp))))))
+        ((atom exp) exp)
+        ((get-cvt-fn (op exp))
+         (funcall (get-cvt-fn (op exp)) exp))
+        ((and (symbolp (op exp)) (macro-function (op exp)))
+         (cvt-macro exp))
+        (t `(,(cvt-fn `(function ,(op exp)))
+             ,@(cvt-exps (args exp))))))
 
 (defun cvt-exps (exps)
   "Like (mapcar #'cvt-exp exps), but handles dotted lists."
@@ -155,12 +160,12 @@
         (con (get-cvt-constant var)))
     (cond ((and con (symbolp con)) con)
           ((and con (functionp con)) (funcall con))
-	  ((starts-with str #\$) var)
-	  ((bracketed-with str #\*)
-	   (mksymbol '$ (subseq str 1 (- (length str)))))
-	  ((bracketed-with str #\+)
-	   (mksymbol '$ (subseq str 1 (- (length str)))))
-	  (t (mksymbol '$ var)))))
+          ((starts-with str #\$) var)
+          ((bracketed-with str #\*)
+           (mksymbol '$ (subseq str 1 (- (length str)))))
+          ((bracketed-with str #\+)
+           (mksymbol '$ (subseq str 1 (- (length str)))))
+          (t (mksymbol '$ var)))))
 
 (defun extract-declarations (body)
   "Return three values: doc string, list of (declare)s, body."
@@ -190,13 +195,13 @@
   "Convert a body. Handle doc, declares, return-from.  Returns a list of forms."
   (labels ((strip-begin (exp)
               (if (and (starts-with exp 'begin) (= (length (strip exp)) 2))
-		  (strip-begin (second/ exp))
-		  exp)))
+                  (strip-begin (second/ exp))
+                  exp)))
     (multiple-value-bind (doc decls body) (extract-declarations body)
       (declare (ignore decls))
       (let ((forms (handle-return-froms
-	            (mapcar #'(lambda (exp) (strip-begin (cvt-exp exp)))
-		            (or body '(|\#f|)))
+                    (mapcar #'(lambda (exp) (strip-begin (cvt-exp exp)))
+                            (or body '(|\#f|)))
                     name)))
         (if doc
             (cons (add-comment doc (first/ forms)) (rest/ forms))
@@ -221,11 +226,11 @@
     (dolist (decl (rest/ declaration))
       ;; Handle (type fixnum ... variable ...)
       (when (and (starts-with decl 'type) (member variable (cddr decl)))
-	(RETURN-FROM get-type-declaration (cvt-type (second/ decl))))
+        (RETURN-FROM get-type-declaration (cvt-type (second/ decl))))
       ;; Handle (fixnum ... variable ...))
       (when (and (consp decl) (get-cvt-type (first/ decl))
                  (member variable (rest/ decl)))
-	(RETURN-FROM get-type-declaration (cvt-type (first/ decl)))))))
+        (RETURN-FROM get-type-declaration (cvt-type (first/ decl)))))))
 
 (defun cvt-erroneous (exp replacement &rest format-args)
   "Can't convert exp; just return replacement, but print warnings."
@@ -238,7 +243,7 @@
     (if (get-option :errors-inline)
         (add-comment
          (concatenate 'string "LTD: " (apply #'format nil format-args))
-	 replacement)
+         replacement)
         replacement)))
 
 (defun false? (x)

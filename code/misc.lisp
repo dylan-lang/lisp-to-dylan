@@ -15,7 +15,7 @@
 (defun null/ (exp) (null (strip-nil exp)))
 (defun assoc/ (item a-list) 
   (find (strip item) (strip a-list) 
-	:key #'(lambda (x) (first-atom (strip x)))))
+        :key #'(lambda (x) (first-atom (strip x)))))
 
 (defun strip-nil (exp)
   "Strip comment, and convert |()| to ()."
@@ -125,32 +125,32 @@
    form exp body
    #'(lambda (arg)
        (case arg
-	 ((f pred) 'cvt-fn)
-	 ((name ignore asis) 'identity)
-	 ((body) 'cvt-body)
-	 ((type class) 'cvt-type-exp)
-	 ((keys) 'cvt-keys) ; Which does NOT convert; just handles :test-not
-	 ((stdin) '(lambda (x)
-		    (if (null/ x) '*standard-input* (cvt-exp x))))
-	 ((stdout) '(lambda (x)
-		     (if (null/ x) '*standard-output* (cvt-exp x))))
-	 (otherwise
-	  (if (ends-with (string arg) #\*)
-	      'cvt-exps 
-	      'cvt-exp))))))
+         ((f pred) 'cvt-fn)
+         ((name ignore asis) 'identity)
+         ((body) 'cvt-body)
+         ((type class) 'cvt-type-exp)
+         ((keys) 'cvt-keys) ; Which does NOT convert; just handles :test-not
+         ((stdin) '(lambda (x)
+                    (if (null/ x) '*standard-input* (cvt-exp x))))
+         ((stdout) '(lambda (x)
+                     (if (null/ x) '*standard-output* (cvt-exp x))))
+         (otherwise
+          (if (ends-with (string arg) #\*)
+              'cvt-exps 
+              'cvt-exp))))))
 
 (defun *ing-bind-fn (form exp body converter)
   (let ((var (gensym))
-	 (vars nil))
+         (vars nil))
     (loop (let ((v (if (atom form) form (first form))))
-	    (cond ((null/ form) (RETURN))
+            (cond ((null/ form) (RETURN))
                   ((member v '(&opt &optional)) nil)
-		  ((or (not (symbolp v)) (member v lambda-list-keywords))
-		   (error "Don't support ~A" v))
-		  ((and (atom form) (not (null form)))
+                  ((or (not (symbolp v)) (member v lambda-list-keywords))
+                   (error "Don't support ~A" v))
+                  ((and (atom form) (not (null form)))
                    (push `(,v (,(funcall converter v) ,var)) vars))
-		  (t (push `(,v (,(funcall converter v) (pop ,var))) vars)))
+                  (t (push `(,v (,(funcall converter v) (pop ,var))) vars)))
             (if (atom form) (RETURN) (pop form))))
-    `(let* ((,var ,exp) ,@(nreverse vars)) ,@body)))
-
-
+    `(let* ((,var ,exp) ,@(nreverse vars))
+       (declare (ignorable ,var))
+       ,@body)))

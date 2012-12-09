@@ -3,5 +3,3 @@
 (defpackage :ltd
   (:use :common-lisp)
   (:export #:ltd-files))
-
-

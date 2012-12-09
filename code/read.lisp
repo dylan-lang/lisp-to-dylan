@@ -38,11 +38,10 @@
 
 (defun ltd-read-list (stream char)
   ;; Check for () and record positions
-  (declare (ignore char))
   (case (peek-char t stream nil)
     (#\) (read-char stream) '|()|)
     (otherwise (record-file-positions
-		stream (funcall *read-list* stream char)))))
+                stream (funcall *read-list* stream char)))))
 
 (defun read-array (stream char &optional arg)
   "Read an array using the native lisp array reader."
@@ -61,12 +60,12 @@
   (let* ((comment
           (case char
             (#\; (loop while (read-char-if stream #\;)) ; Flush leading ;s
-	     (read-line stream nil ""))
+             (read-line stream nil ""))
             (#\| (ltd-read-hash-comment stream))
-	    (t "")))
+            (t "")))
          (comments (if comment-so-far
                        (format nil "~A~%~A" comment-so-far comment)
-		     comment)))
+                     comment)))
     (case (peek-char t stream nil)
       ((#\. #\)) (values));; Ignore the comment
       ((#\;) (collect-comments stream #\; nil comments))
@@ -74,11 +73,11 @@
        ;; Deal with #|, #+, #-
        (read-char stream)
        (case (peek-char nil stream nil)
-	 ((#\|) (read-char stream)
-	  (collect-comments stream #\| nil comments))
-	 ((#\+ #\-) (add-comments-to-conditional stream comments))
-	 (t (unread-char #\# stream)
-	    (add-comment comments (ltd-read stream)))))
+         ((#\|) (read-char stream)
+          (collect-comments stream #\| nil comments))
+         ((#\+ #\-) (add-comments-to-conditional stream comments))
+         (t (unread-char #\# stream)
+            (add-comment comments (ltd-read stream)))))
       (otherwise (add-comment comments (ltd-read stream))))))
 
 (defun add-comments-to-conditional (stream comments)
@@ -86,14 +85,14 @@
   ;; Add comments to next expression, if it is in,
   ;; or else ignore it and pass comments back to collect-comments
   (let* ((fn (ecase (read-char stream) (#\+ 'identity) (#\- 'not)))
-	 (*package* (find-package :keyword))
-	 (feature (read stream)))
+         (*package* (find-package :keyword))
+         (feature (read stream)))
     (if (funcall fn (member feature *features*)) ;; should handle and/or/not
-	(add-comment comments (ltd-read stream))
+        (add-comment comments (ltd-read stream))
       (let ((*read-suppress* t))
-	(read stream nil nil) ;; Ignore the next exp
-	(collect-comments stream nil 0 comments)))))
-	
+        (read stream nil nil) ;; Ignore the next exp
+        (collect-comments stream nil 0 comments)))))
+        
 
 (defun ltd-read-hash-comment (stream)
   (setf (fill-pointer *buffer*) 0)
@@ -101,16 +100,16 @@
     (loop
      (let ((char (read-char stream nil :eof t)))
        (case char
-	 (:eof (warn "EOF during #| ... |# comment") (RETURN))
-	 (#\# (cond ((read-char-if stream #\|)
-		     (incf level))
-		    (t (vector-push-extend #\# *buffer*))))
-	 (#\| (cond ((read-char-if stream #\#)
-		     (decf level)
-		     (when (eql level 0)
-		       (RETURN)))
-		    (t (vector-push-extend #\| *buffer*))))
-	 (otherwise (vector-push-extend char *buffer*))))))
+         (:eof (warn "EOF during #| ... |# comment") (RETURN))
+         (#\# (cond ((read-char-if stream #\|)
+                     (incf level))
+                    (t (vector-push-extend #\# *buffer*))))
+         (#\| (cond ((read-char-if stream #\#)
+                     (decf level)
+                     (when (eql level 0)
+                       (RETURN)))
+                    (t (vector-push-extend #\| *buffer*))))
+         (otherwise (vector-push-extend char *buffer*))))))
   (coerce *buffer* 'string))
 
 (defparameter *ltd-readtable*

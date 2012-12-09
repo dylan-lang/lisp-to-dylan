@@ -152,7 +152,7 @@
 (ltd-fn (block name . body)      (handle-returns1 (maybe-begin body) name))
 (ltd-fn  return-from             #'cvt-return-from)
 (ltd-fn (return &opt x)          (if (starts-with x 'values) `(return ,@(rest/ x))
-				   `(return ,x)))
+                                   `(return ,x)))
 (ltd-fn  loop                    #'cvt-loop)
 (ltd-fn  do                      #'cvt-do)
 (ltd-fn  do*                     #'cvt-do)
@@ -160,7 +160,7 @@
 (ltd-fn  dotimes                 #'cvt-dotimes)
 (ltd-fn (mapcar f list . list*)  `(map ,f ,list . ,list*))
 (ltd-fn (mapc f list . list*)    (once list `(begin (do ,f ,list . ,list*)
-						    ,(strip list))))
+                                                    ,(strip list))))
 (ltd-fn (mapcan f . list*)       `(apply concatenate! (map ,f . ,list*)))
 (ltd-fn (mapcon . asis)          `(apply concatenate! ,(cvt-exp `(maplist . ,asis))))
 (ltd-fn  tagbody                 #'cvt-tagbody)
@@ -172,7 +172,7 @@
 (ltd-fn (multiple-value-list x)  `(let (:args |\#rest| _) ,x _))
 (ltd-fn  multiple-value-call     #'cvt-multiple-value-call)
 (ltd-fn (multiple-value-prog1 x . x*) `(let (:args |\#rest| _) ,x ,@x*
-					 (apply values _)))
+                                         (apply values _)))
 (ltd-fn  multiple-value-bind     #'cvt-multiple-value-bind)
 (ltd-fn  multiple-value-setq     #'cvt-multiple-value-setq)
 (ltd-fn (nth-value n x)          `(element (begin (let (:args |\#rest| _) ,x _)) ,n))
@@ -183,9 +183,9 @@
 ;;;; CLtL2 CH 8: MACROS
 
 (ltd-fn (defmacro name . ignore) (progn (incf-unimplemented 'defmacro)
-				   (cvt-erroneous exp `',name "No macros.")))
+                                   (cvt-erroneous exp `',name "No macros.")))
 (ltd-fn (defsetf name . ignore)  (progn (incf-unimplemented 'defsetf)
-				   (cvt-erroneous exp `',name "No setf macros.")))
+                                   (cvt-erroneous exp `',name "No setf macros.")))
 (ltd-fn  destructuring-bind      #'cvt-macro) ; Note no &optional in Dylan
 
 ;;;; CLtL2 CH 9: DECLARATIONS
@@ -248,7 +248,7 @@
 (ltd-fn (isqrt x)                `(truncate (sqrt ,x)))
 (ltd-fn  abs                     abs)
 (ltd-fn (signum x)               (once x `(if (> ,x 0) 1 (:elseif (< ,x 0) -1)
-					      (:else 0))))
+                                              (:else 0))))
 (ltd-fn  sin                     sin)
 (ltd-fn  cos                     cos)
 (ltd-fn  tan                     tan)
@@ -338,31 +338,31 @@
 (ltd-fn  reduce                  #'cvt-reduce)
 (ltd-fn  fill                    fill!)
 (ltd-fn (replace a b . keys)     `(replace-subsequence! ,(mkseq a keys :start1 :end1)
-							,(mkseq b keys :start2 :end2)))
+                                                        ,(mkseq b keys :start2 :end2)))
 (ltd-fn (delete i s  . keys)     (cl? exp `(remove! ,(mkseq s keys) ,i ,@(mktest keys)
                                                    ,@(mkcount keys))))
 (ltd-fn (delete-if pred s . keys)(cl? exp `(choose (complement ,(mkpred keys pred))
-						   ,(mkseq s keys))))
+                                                   ,(mkseq s keys))))
 (ltd-fn  delete-if-not           #'cvt-if-not)
 (ltd-fn (remove i s  . keys)     (cl? exp `(remove ,(mkseq s keys) ,i ,@(mktest keys)
                                                    ,@(mkcount keys))))
 (ltd-fn (remove-if pred s . keys)(cl? exp `(choose (complement ,(mkpred keys pred))
-						   ,(mkseq s keys))))
+                                                   ,(mkseq s keys))))
 (ltd-fn  remove-if-not           #'cvt-if-not)
 (ltd-fn  delete-duplicates       cl-remove-duplicates!)
 (ltd-fn  remove-duplicates       cl-remove-duplicates)
 (ltd-fn (substitute n o s . keys)(cl? exp `(replace-elements
-					    ,s ,(mkpred keys `(curry == ,o))
-					    (always ,n) ,@(mkcount keys)) '(:from-end)))
+                                            ,s ,(mkpred keys `(curry == ,o))
+                                            (always ,n) ,@(mkcount keys)) '(:from-end)))
 (ltd-fn (substitute-if n pred s . keys) (cl? exp `(replace-elements
-						   ,s ,(mkpred keys pred) (always ,n)
+                                                   ,s ,(mkpred keys pred) (always ,n)
                                                    ,@(mkcount keys)) '(:from-end)))
 (ltd-fn  substitute-if-not       #'cvt-if-not)
 (ltd-fn (nsubstitute n o s . keys)(cl? exp `(replace-elements!
-					    ,s ,(mkpred keys `(curry == ,o))
-					    (always ,n) ,@(mkcount keys)) '(:from-end)))
+                                            ,s ,(mkpred keys `(curry == ,o))
+                                            (always ,n) ,@(mkcount keys)) '(:from-end)))
 (ltd-fn (nsubstitute-if n pred s . keys) (cl? exp `(replace-elements!
-						   ,s ,(mkpred keys pred) (always ,n)
+                                                   ,s ,(mkpred keys pred) (always ,n)
                                                    ,@(mkcount keys)) '(:from-end)))
 (ltd-fn  nsubstitute-if-not       #'cvt-if-not)
 (ltd-fn  find                    cl-find)
@@ -376,8 +376,8 @@
 (ltd-fn  count-if-not            #'cvt-if-not)
 (ltd-fn (mismatch a b . keys)    `(cl-mismatch ,a ,b . ,(cvt-exps keys)))
 (ltd-fn (search a b . keys)      (cl? exp `(subsequence-position
-					    ,(mkseq a keys :start1 :end1)
-					    ,(mkseq b keys :start2 :end2))))
+                                            ,(mkseq a keys :start1 :end1)
+                                            ,(mkseq b keys :start2 :end2))))
 (ltd-fn (sort s pred . keys)     `(sort! ,s ,@(mktest keys pred 2)))
 (ltd-fn (stable-sort s pred . keys) `(sort! ,s  :stable |\#t| ,@(mktest keys pred 2)))
 (ltd-fn (merge type a b pred . keys) `(cl-merge ,type ,a ,b ,(mkpred keys pred)))
@@ -408,11 +408,11 @@
 (ltd-fn  rest                    tail)
 (ltd-fn (nthcdr i l)             `(nth-tail ,l ,i))
 (ltd-fn (last s &opt n)          (once s `(copy-sequence 
-					   ,s :start (- (size ,s) ,(ifd n n 1)))))
+                                           ,s :start (- (size ,s) ,(ifd n n 1)))))
 (ltd-fn  list                    list)
 (ltd-fn (list* . arg*)           `(apply list . ,arg*))
 (ltd-fn (make-list n . key*)     (let ((init (getf key* :initial-element)))
-				   `(make <list> :size ,n ,@(ifd init `(:fill ,init)))))
+                                   `(make <list> :size ,n ,@(ifd init `(:fill ,init)))))
 (ltd-fn  append                  concatenate)
 (ltd-fn  copy-list               copy-sequence)
 (ltd-fn (copy-alist a)           `(map (method (:list x) (pair (head x) (tail x))) ,a))
@@ -443,7 +443,7 @@
 (ltd-fn (nset-difference a b . keys) `(set-difference ,a ,b ,@(mktest keys nil 2)))
 (ltd-fn (acons k d a)            `(cons (cons ,k ,d) ,a))
 (ltd-fn (pairlis k d &opt a)     (ifd a `(append! (map cons ,k ,d) ,a)
-				      `(map cons ,k ,d)))
+                                      `(map cons ,k ,d)))
 (ltd-fn  assoc                   cl-assoc)
 (ltd-fn  assoc-if                cl-assoc-if)
 (ltd-fn  assoc-if-not            #'cvt-if-not)
@@ -495,7 +495,7 @@
 (ltd-fn  string-not-lessp        string-not-less?)
 (ltd-fn  string-not-equal        string-not-equal?)
 (ltd-fn (make-string n . key*)   `(make <string> :size ,n
-					:fill ,(getf key* :initial-element #\space)))
+                                        :fill ,(getf key* :initial-element #\space)))
 (ltd-fn  string-trim             string-trim)
 (ltd-fn  string-left-trim        string-left-trim)
 (ltd-fn  string-right-trim       string-right-trim)
@@ -552,7 +552,7 @@
 (ltd-fn (open fl . k*)           `(make <file-stream> :locator ,fl . ,k*))
 (ltd-fn  with-open-file          #'cvt-with-open-file)
 (ltd-fn (file-position s &opt p) (ifd p `(:= (stream-position ,s) ,p)
-				      `(stream-position ,s)))
+                                      `(stream-position ,s)))
 
 ;;;; CLtL2 CH 24: ERRORS
 
@@ -718,11 +718,3 @@
  get-internal-run-time        pprint-dispatch              yes-or-no-p 
  get-macro-character          pprint-fill 
 ) 
- 
- 
- 
- 
- 
- 
- 
- 

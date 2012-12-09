@@ -80,7 +80,7 @@
 (defparameter *options* (copy-tree *default-options*))
 
 (defun new-options (&rest inits &key (default *default-options*) (? nil)
-			  &allow-other-keys)
+                          &allow-other-keys)
   ;; Build and install a new options list.  You can:
   ;; (1) specify a default with, e.g., :default *old-options*
   ;; (2) override values with, e.g., :unless-as 'if :tab-stop 4
@@ -90,8 +90,8 @@
     (dolist (option *options*)
       (setf (option-value option) :?)))
   (loop for (key val) on inits by #'cddr do
-	(unless (member key '(:? :default))
-	  (set-option key val)))
+        (unless (member key '(:? :default))
+          (set-option key val)))
   *options*)
 
 (defun set-option (name value &optional (ask? t))
@@ -100,7 +100,7 @@
     (cond ((null option) (warn "No such option name as ~A; ignored." name)
            nil)
           ((legal-option-value? name value)
-	   (setf (option-value option) value)
+           (setf (option-value option) value)
            t)
           (ask?
            (format *query-io* "~&The legal values are ~A"
@@ -143,8 +143,8 @@
          "either a list of names, or T to indicate any name")
         ((atom type)
          (format nil "a ~A" type))
-	((eq (first type) 'integer)
-	 (format nil "an integer from ~D to ~D" (second type) (third type)))
+        ((eq (first type) 'integer)
+         (format nil "an integer from ~D to ~D" (second type) (third type)))
         ((and (starts-with type 'member) (= (length type) 2))
          (format nil "~S" (second type)))
         ((starts-with type 'member)
@@ -153,4 +153,3 @@
          (format nil "~{~A~^ and ~}" (mapcar #'type->string (rest type))))
         ((starts-with type 'or)
          (format nil "~{~A~^ or ~}" (mapcar #'type->string (rest type))))))
-
